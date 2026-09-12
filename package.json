@@ -1,0 +1,9 @@
+{
+  "name": "museum-of-unlived-futures",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A Thai speculative-world simulator and museum of alternate histories",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": { "start": "node server.js", "test": "node --test", "check": "node --check server.js && node --check src/engine.js && node --check public/app.js" }
+}

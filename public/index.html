@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="สร้างกฎของโลก จำลองประวัติศาสตร์ และเก็บวัตถุจากอนาคตที่ไม่เคยเกิดขึ้น">
+  <title>พิพิธภัณฑ์อนาคตที่ไม่เคยเกิดขึ้น</title>
+  <link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="พิพิธภัณฑ์อนาคตที่ไม่เคยเกิดขึ้น"><span class="brand-mark">◈</span><span>UNLIVED<br><small>MUSEUM OF POSSIBILITIES</small></span></a>
+    <div class="sidebar-caption">ห้องทำงานของผู้ดูแล</div>
+    <nav aria-label="เมนูหลัก">
+      <button data-view="observatory" class="nav active"><span>◎</span>หอสังเกตการณ์</button>
+      <button data-view="timeline" class="nav"><span>⌁</span>บันทึกเส้นเวลา</button>
+      <button data-view="museum" class="nav"><span>◇</span>ห้องจัดแสดง</button>
+      <button data-view="compare" class="nav"><span>⑂</span>เทียบโลกคู่ขนาน</button>
+    </nav>
+    <div class="world-heading"><span>เส้นเวลาของคุณ</span><button id="new-world-small" class="icon-button" aria-label="สร้างโลกใหม่">+</button></div>
+    <div id="world-list" class="world-list"></div>
+    <button id="new-world" class="new-world">+ สร้างโลกใหม่</button>
+    <div class="sidebar-bottom"><span class="status-dot"></span> บันทึกลงเครื่องอัตโนมัติ<br><small>ทุกโลกในที่นี้เป็นเรื่องสมมติ</small><button id="help-button" class="text-button">วิธีเล่น ↗</button></div>
+  </aside>
+  <main>
+    <header class="topbar"><span id="breadcrumb">คลังความเป็นไปได้ / หอสังเกตการณ์</span><span class="edition">EST. ∞ &nbsp; / &nbsp; VOL. 001</span></header>
+    <div id="content" aria-live="polite"><div class="empty">กำลังเปิดพิพิธภัณฑ์…</div></div>
+    <footer>ไม่มีอนาคตไหนเกิดขึ้นโดยไม่มีสิ่งที่สูญหาย <span>UNLIVED / LOCAL ARCHIVE</span></footer>
+  </main>
+  <dialog id="world-dialog">
+    <form id="world-form">
+      <div class="dialog-heading"><div><span class="eyebrow" id="form-kicker">NEW POSSIBILITY</span><h2 id="form-title">กำเนิดโลกใหม่</h2></div><button type="button" class="icon-button" data-close aria-label="ปิด">×</button></div>
+      <label class="field">ชื่อโลก<input name="name" required maxlength="80" placeholder="เช่น เมืองที่ลืมวันจันทร์" autocomplete="off"></label>
+      <label class="field" id="seed-field">เมล็ดกำเนิด<input name="seed" maxlength="100" value="somewhere-in-another-life"><small>ใช้ข้อความเดิมและกฎเดิม จะได้ประวัติศาสตร์เดียวกัน</small></label>
+      <div class="field"><span>เลือกกฎที่เป็นไปไม่ได้ <strong id="law-count">0 / 3</strong></span><div id="law-options" class="law-options"></div></div>
+      <p id="form-error" class="error" role="alert"></p>
+      <button type="submit" class="primary full" id="create-button">สร้างเส้นเวลา →</button>
+    </form>
+  </dialog>
+  <dialog id="artifact-dialog"></dialog>
+  <dialog id="help-dialog"><div class="dialog-heading"><h2>คู่มือผู้ดูแลความเป็นไปได้</h2><button class="icon-button" data-close aria-label="ปิด">×</button></div><ol class="help-list"><li><strong>สร้างโลก</strong> เลือกกฎประหลาด 1–3 ข้อ กฎแต่ละข้อส่งผลต่อเมืองต่างกัน</li><li><strong>ปล่อยเวลาเดิน</strong> จำลองครั้งละ 1 หรือ 10 ปี อ่านเหตุการณ์และสังเกตค่าทั้งหก ไม่มีคะแนนชนะเพียงค่าเดียว</li><li><strong>แทรกแซง</strong> ใช้พลังเพื่อเปลี่ยนทิศทางเมือง ฟื้น 1 หน่วยทุก 5 ปี เก็บได้สูงสุด 8 หน่วย</li><li><strong>แตกเส้นเวลา</strong> คัดลอกโลกปัจจุบันแล้วเปลี่ยนกฎ ประวัติศาสตร์เดิมยังอยู่ จากนั้นจำลองแต่ละโลกเพื่อเทียบผล</li><li><strong>จัดพิพิธภัณฑ์</strong> เปิดวัตถุ เพิ่มบันทึก และเลือกชิ้นที่ต้องการจัดแสดง</li></ol><p class="muted">ระบบนี้ใช้กฎและแม่แบบเรื่องเล่าที่เขียนไว้ ไม่ได้ใช้ AI หรือทำนายสังคมจริง ข้อมูลเก็บในเครื่อง ส่งออก JSON ได้จากหน้าหอสังเกตการณ์</p></dialog>
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>
