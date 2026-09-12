@@ -1,3 +1,4 @@
+import { peoplePage, personDialog } from './people-ui.js';
 const $ = (selector, base = document) => base.querySelector(selector);
 const $$ = (selector, base = document) => [...base.querySelectorAll(selector)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -39,7 +40,7 @@ function cosmos(world) {
   const wonder = world.metrics.wonder, ecology = world.metrics.ecology;
   return `<svg class="cosmos" viewBox="0 0 600 365" aria-hidden="true"><defs><radialGradient id="glow"><stop stop-color="#9eaf83" stop-opacity=".2"/><stop offset="1" stop-color="#223d34" stop-opacity="0"/></radialGradient><linearGradient id="planet" x2="1" y2="1"><stop stop-color="#c9c5a0"/><stop offset=".5" stop-color="#83997c"/><stop offset="1" stop-color="#304e41"/></linearGradient><pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M 30 0 L 0 0 0 30" fill="none" stroke="#a5b59b" stroke-opacity=".06"/></pattern></defs><rect width="600" height="365" fill="url(#grid)"/><circle cx="315" cy="175" r="170" fill="url(#glow)"/><g transform="translate(315 168)"><ellipse rx="195" ry="60" fill="none" stroke="#91a282" stroke-opacity=".3" transform="rotate(-28)"/><ellipse rx="155" ry="112" fill="none" stroke="#b8b896" stroke-opacity=".2" transform="rotate(25)"/><circle r="${56 + ecology * .25}" fill="url(#planet)"/><path d="M-58 -22 Q-20 -70 20 -20 T65 8 M-65 10 Q-15 -25 5 26 T50 45 M-38 45 Q-8 0 47 -44" fill="none" stroke="#d8d3ad" stroke-opacity=".3" stroke-width="1.5"/><ellipse rx="${110 + wonder * .6}" ry="28" fill="none" stroke="#d3bd8c" stroke-opacity=".7" transform="rotate(-28)"/><circle cx="-145" cy="76" r="6" fill="#c6ac77"/><circle cx="124" cy="-97" r="3" fill="#c6ac77"/><path d="M-195 -65h10m-5 -5v10M172 73h10m-5 -5v10" stroke="#c6c4a1"/><circle r="105" fill="none" stroke="#bcb791" stroke-dasharray="1 13" stroke-opacity=".5"/></g></svg>`;
 }
-function eventRows(events) { return events.map(e => `<article class="event-row ${e.kind}"><time>YEAR ${String(e.year).padStart(3, '0')}${e.kind === 'intervention' ? ' / แทรกแซง' : ''}</time><h3>${esc(e.title)}</h3><p>${esc(e.text)}</p>${e.crisis ? `<p class="error">${esc(e.crisis)}</p>` : ''}<div class="effects">${Object.entries(e.effects).filter(([, v]) => Math.abs(v) >= .5).map(([k, v]) => `<span class="${v < 0 ? 'negative' : ''}">${state.catalog.metrics[k]} ${v > 0 ? '+' : ''}${num(v)}</span>`).join('')}</div></article>`).join(''); }
+function eventRows(events) { return events.map(e => `<article class="event-row ${e.kind}"><time>YEAR ${String(e.year).padStart(3, '0')}${e.kind === 'intervention' ? ' / แทรกแซง' : ''}</time><h3>${esc(e.title)}</h3><p>${esc(e.text)}</p>${e.crisis ? `<p class="error">${esc(e.crisis)}</p>` : ''}${e.resident ? `<div class="resident-decision"><button class="text-button" data-person="${esc(e.resident.id)}">${esc(e.resident.name)} ↗</button><p>${esc(e.resident.decision)} เพราะ${esc(e.resident.reason)}</p><small>ผลต่อเมือง: ${state.catalog.metrics[e.resident.metric]} +${num(e.resident.effect)}</small></div>` : ''}<div class="effects">${Object.entries(e.effects).filter(([, v]) => Math.abs(v) >= .5).map(([k, v]) => `<span class="${v < 0 ? 'negative' : ''}">${state.catalog.metrics[k]} ${v > 0 ? '+' : ''}${num(v)}</span>`).join('')}</div></article>`).join(''); }
 function observatory() {
   const w = state.world;
   return heading('OBSERVATORY / หอสังเกตการณ์', w.name, `เส้นเวลาที่ ${String(state.worlds.findIndex(x => x.id === w.id) + 1).padStart(2, '0')} · เมล็ดกำเนิด: ${esc(w.seed || '(ว่าง)')}`, '<button class="secondary" data-action="branch">⑂ แตกเส้นเวลา</button>') +
@@ -57,7 +58,7 @@ function chart(w) {
 }
 function timeline() {
   const w = state.world;
-  const entries = w.history.filter(e => (state.filter === 'all' || e.kind === state.filter) && `${e.title} ${e.text}`.includes(state.search)).reverse();
+  const entries = w.history.filter(e => (!state.eventId || e.id === state.eventId) && (state.filter === 'all' || e.kind === state.filter) && `${e.title} ${e.text}`.includes(state.search)).reverse();
   const pages = Math.ceil(entries.length / 20); state.page = Math.max(0, Math.min(state.page, pages - 1));
   return heading('CHRONICLE / บันทึกเส้นเวลา', 'ประวัติศาสตร์ของสิ่งที่เป็นไปไม่ได้', `${esc(w.name)} · ${num(w.history.length)} เหตุการณ์`) + `<section class="chart-panel"><h3>ร่องรอยการเปลี่ยนแปลง</h3>${chart(w)}</section><div class="toolbar"><input id="search" aria-label="ค้นหาเหตุการณ์" placeholder="ค้นหาในประวัติศาสตร์…" value="${esc(state.search)}"><select id="filter" aria-label="ประเภทเหตุการณ์"><option value="all">ทุกเหตุการณ์</option><option value="event">เหตุการณ์ทั่วไป</option><option value="crisis">วิกฤต</option><option value="intervention">การแทรกแซง</option></select></div>${entries.length ? eventRows(entries.slice(state.page * 20, (state.page + 1) * 20)) : '<div class="empty">ยังไม่มีเหตุการณ์ที่ตรงกับการค้นหา</div>'}${pages > 1 ? `<div class="pagination"><button class="secondary" data-page="-1" ${state.page === 0 ? 'disabled' : ''}>← ก่อนหน้า</button><span>${state.page + 1} / ${pages}</span><button class="secondary" data-page="1" ${state.page >= pages - 1 ? 'disabled' : ''}>ถัดไป →</button></div>` : ''}`;
 }
@@ -94,11 +95,11 @@ function compare() {
 }
 function render() {
   renderSidebar();
-  $('#breadcrumb').textContent = `คลังความเป็นไปได้ / ${{ observatory: 'หอสังเกตการณ์', timeline: 'บันทึกเส้นเวลา', museum: 'ห้องจัดแสดง', compare: 'เทียบโลกคู่ขนาน' }[state.view]}`;
-  $('#content').innerHTML = !state.world ? `<div class="empty welcome"><span class="eyebrow">THE MUSEUM OF UNLIVED FUTURES</span><span class="empty-icon">◈</span><h1>พิพิธภัณฑ์อนาคต<br>ที่ไม่เคยเกิดขึ้น</h1><p>ถ้าความทรงจำใช้แทนเงินได้ และความฝันสร้างเมืองได้<br>ผู้คนจะใช้ชีวิตอย่างไร?<br>ตั้งกฎ ปล่อยเวลาเดิน แล้วเก็บหลักฐานของโลกที่คุณสร้าง</p><button class="primary" data-action="new">สร้างความเป็นไปได้แรก →</button></div>` : ({ observatory, timeline, museum, compare })[state.view]();
+  $('#breadcrumb').textContent = `คลังความเป็นไปได้ / ${{ observatory: 'หอสังเกตการณ์', timeline: 'บันทึกเส้นเวลา', people: 'ผู้คนในโลก', museum: 'ห้องจัดแสดง', compare: 'เทียบโลกคู่ขนาน' }[state.view]}`;
+  $('#content').innerHTML = !state.world ? `<div class="empty welcome"><span class="eyebrow">THE MUSEUM OF UNLIVED FUTURES</span><span class="empty-icon">◈</span><h1>พิพิธภัณฑ์อนาคต<br>ที่ไม่เคยเกิดขึ้น</h1><p>ถ้าความทรงจำใช้แทนเงินได้ และความฝันสร้างเมืองได้<br>ผู้คนจะใช้ชีวิตอย่างไร?<br>ตั้งกฎ ปล่อยเวลาเดิน แล้วเก็บหลักฐานของโลกที่คุณสร้าง</p><button class="primary" data-action="new">สร้างความเป็นไปได้แรก →</button></div>` : ({ observatory, timeline, museum, compare, people: () => peoplePage(state) })[state.view]();
   if ($('#filter')) $('#filter').value = state.filter;
 }
-async function navigate(view) { state.view = view; state.search = ''; state.filter = 'all'; state.page = 0; if (view === 'compare') await loadComparison(); render(); }
+async function navigate(view) { state.view = view; state.search = ''; state.filter = 'all'; state.page = 0; state.eventId = null; if (view === 'compare') await loadComparison(); render(); window.scrollTo({ top: 0, behavior: 'instant' }); }
 function openWorldForm(isBranch = false) {
   state.branch = isBranch;
   const form = $('#world-form'); form.reset();
@@ -111,9 +112,20 @@ function openWorldForm(isBranch = false) {
   updateLawCount(); $('#world-dialog').showModal();
 }
 function updateLawCount() { $('#law-count').textContent = `${$$('[name="law"]:checked').length} / 3`; }
+function openPerson(id, other = null) {
+  const dialog = $('#person-dialog');
+  if (!state.world.people?.some(p => p.id === id)) return;
+  dialog.innerHTML = personDialog(state, id, other);
+  if (!dialog.open) dialog.showModal();
+  dialog.scrollTop = 0;
+}
 function openArtifact(id) {
   const a = state.world.artifacts.find(x => x.id === id), dialog = $('#artifact-dialog');
   dialog.innerHTML = `<div class="dialog-heading"><div><span class="eyebrow">OBJECT ${String(a.year).padStart(4, '0')} / ${a.rarity}</span><h2>${esc(a.name)}</h2></div><button class="icon-button" data-close aria-label="ปิด">×</button></div><div class="artifact-detail-art artifact-art">${artifactArt(a)}</div><p>${esc(a.description)}</p><form id="artifact-form" data-id="${a.id}"><label class="field">บันทึกของผู้ดูแล<textarea name="note" maxlength="2000" placeholder="วัตถุชิ้นนี้ทำให้คุณคิดถึงอะไร…">${esc(a.note)}</textarea></label><label class="law-option"><input type="checkbox" name="featured" ${a.featured ? 'checked' : ''}><span>เลือกเข้าห้องจัดแสดง</span></label><p class="error" id="artifact-error" role="alert"></p><button class="primary full" type="submit">บันทึกวัตถุ →</button></form>`;
+  if (a.keeperId) {
+    const keeper = state.world.people?.find(p => p.id === a.keeperId);
+    if (keeper) $('#artifact-form', dialog).insertAdjacentHTML('beforebegin', `<div class="branch-note">ผู้ส่งมอบวัตถุเข้าคลัง<button class="text-button" data-person="${esc(keeper.id)}">${esc(keeper.name)} ↗ อ่านชีวิต</button></div>`);
+  }
   dialog.showModal();
 }
 document.addEventListener('click', event => {
@@ -123,9 +135,22 @@ document.addEventListener('click', event => {
   if (button.id === 'new-world' || button.id === 'new-world-small' || button.dataset.action === 'new') { openWorldForm(); return; }
   if (button.dataset.action === 'branch') { openWorldForm(true); return; }
   if (button.dataset.artifact) { openArtifact(button.dataset.artifact); return; }
+  if (button.dataset.person) { button.closest('dialog')?.close(); openPerson(button.dataset.person); return; }
   perform(async () => {
+    if (button.dataset.follow) {
+      const p = state.world.people.find(p => p.id === button.dataset.follow);
+      state.world = await api(`/worlds/${state.world.id}/people`, 'PATCH', { id: p.id, followed: !p.followed });
+      render(); openPerson(p.id); toast('บันทึกสถานะติดตามแล้ว');
+    }
+    if (button.dataset.event) {
+      button.closest('dialog')?.close();
+      await navigate('timeline');
+      state.eventId = button.dataset.event;
+      render();
+      $('.toolbar').insertAdjacentHTML('beforebegin', '<div class="branch-note">กำลังดูเหตุการณ์ที่เชื่อมกับบันทึกชีวิต<button class="text-button" data-go="timeline">กลับไปดูทุกเหตุการณ์ ↗</button></div>');
+    }
     if (button.dataset.view || button.dataset.go) await navigate(button.dataset.view || button.dataset.go);
-    if (button.dataset.world) { state.page = 0; await refresh(button.dataset.world); }
+    if (button.dataset.world) { state.page = 0; state.eventId = null; await refresh(button.dataset.world); }
     if (button.dataset.advance) { const updated = await api(`/worlds/${state.world.id}/advance`, 'POST', { years: Number(button.dataset.advance) }); await refresh(updated.id); toast(`เดินทางถึงปี ${updated.year} แล้ว`); }
     if (button.dataset.intervene) { await api(`/worlds/${state.world.id}/intervene`, 'POST', { id: button.dataset.intervene }); await refresh(); toast('การตัดสินใจของคุณถูกบันทึกแล้ว'); }
     if (button.dataset.page) { state.page += Number(button.dataset.page); render(); $('#content').scrollIntoView({ behavior: 'instant' }); }
@@ -142,11 +167,15 @@ document.addEventListener('change', event => {
     if ($$('[name="law"]:checked').length > 3) { event.target.checked = false; toast('เลือกกฎได้สูงสุด 3 ข้อ'); }
     updateLawCount();
   }
-  if (event.target.id === 'filter') { state.filter = event.target.value; state.page = 0; render(); }
+  if (event.target.id === 'filter') { state.filter = event.target.value; state.page = 0; state.eventId = null; render(); }
   if (event.target.id === 'compare-select') perform(async () => { state.compareId = event.target.value; await loadComparison(); render(); });
+  if (event.target.id === 'person-compare') {
+    const id = event.target.dataset.personId, worldId = event.target.value;
+    perform(async () => openPerson(id, worldId ? await api(`/worlds/${worldId}`) : null));
+  }
 });
 document.addEventListener('input', event => {
-  if (event.target.id === 'search') { const position = event.target.selectionStart; state.search = event.target.value; state.page = 0; render(); $('#search').focus(); $('#search').setSelectionRange(position, position); }
+  if (event.target.id === 'search') { const position = event.target.selectionStart; state.search = event.target.value; state.page = 0; state.eventId = null; render(); $('#search').focus(); $('#search').setSelectionRange(position, position); }
 });
 $('#world-form').addEventListener('submit', event => {
   event.preventDefault();

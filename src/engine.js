@@ -1,4 +1,5 @@
 import { LAWS, EVENTS, INTERVENTIONS, METRICS } from './catalog.js';
+import { ensurePeople, stepPeople } from './people.js';
 
 export const clamp = (value, min = 0, max = 100) => Math.max(min, Math.min(max, value));
 export function hash(text) {
@@ -25,17 +26,17 @@ export function createWorld({ name, seed, laws }) {
   if (typeof name !== 'string' || !name.trim() || name.trim().length > 80) throw new Error('ชื่อโลกต้องมีความยาว 1–80 ตัวอักษร');
   if (!Array.isArray(laws) || laws.length < 1 || laws.length > 3 || new Set(laws).size !== laws.length || laws.some(id => !LAWS.some(l => l.id === id))) throw new Error('เลือกกฎที่ไม่ซ้ำกัน 1–3 ข้อ');
   if (typeof seed !== 'string' || seed.length > 100) throw new Error('เมล็ดกำเนิดต้องเป็นข้อความไม่เกิน 100 ตัวอักษร');
-  return {
+  return ensurePeople({
     name: name.trim(), seed, laws: [...laws], year: 0, rng: hash(seed),
     metrics: Object.fromEntries(Object.keys(METRICS).map(k => [k, 50])),
     population: 1200, history: [], artifacts: [], snapshots: [], credits: 3,
     parentId: null, branchYear: null,
-  };
+  });
 }
 export function advance(input, years = 1) {
   if (!Number.isInteger(years) || years < 1 || years > 50) throw new Error('จำลองได้ครั้งละ 1–50 ปี');
   if (input.year + years > 2000) throw new Error('แต่ละเส้นเวลาจำลองได้สูงสุด 2,000 ปี');
-  const world = structuredClone(input);
+  const world = ensurePeople(structuredClone(input));
   for (let step = 0; step < years; step++) {
     world.year++;
     const before = { ...world.metrics };
@@ -64,6 +65,8 @@ export function advance(input, years = 1) {
       crisis, law: law.id,
       effects: Object.fromEntries(Object.keys(before).map(k => [k, Math.round((world.metrics[k] - before[k]) * 10) / 10])),
     };
+    const actor = stepPeople(world, entry);
+    entry.effects = Object.fromEntries(Object.keys(before).map(k => [k, Math.round((world.metrics[k] - before[k]) * 10) / 10]));
     world.history.push(entry);
     if (random(world) > .55 || world.year === 1) {
       const rarity = world.metrics.wonder > 75 ? 'มหัศจรรย์' : world.metrics.wonder > 55 ? 'หายาก' : 'สามัญ';
@@ -71,7 +74,7 @@ export function advance(input, years = 1) {
         id: `artifact-${world.year}`, year: world.year,
         name: interaction ? 'บ้านของความทรงจำที่ถูกขาย' : event.artifact,
         description: `พบในปีที่ ${world.year} หลังเหตุการณ์ “${entry.title}” วัตถุชิ้นนี้เป็นหลักฐานของโลกที่${law.name} และของผู้คนที่เรียนรู้จะอยู่กับมัน`,
-        law: law.id, rarity, featured: false, note: '',
+        law: law.id, rarity, featured: false, note: '', keeperId: actor.id,
       });
     }
     world.snapshots.push({ year: world.year, metrics: { ...world.metrics }, population: world.population });
@@ -83,7 +86,7 @@ export function intervene(input, id) {
   const action = INTERVENTIONS.find(i => i.id === id);
   if (!action) throw new Error('ไม่พบการแทรกแซงนี้');
   if (input.credits <= 0) throw new Error('พลังแทรกแซงหมด จำลองอีกจนถึงปีที่หารด้วย 5 ลงตัวเพื่อฟื้นพลัง');
-  const world = structuredClone(input);
+  const world = ensurePeople(structuredClone(input));
   const effects = apply(world, action.effects);
   world.credits--;
   world.history.push({ id: `action-${world.year}-${world.history.length}`, year: world.year, kind: 'intervention', title: action.name, text: 'ผู้ดูแลเส้นเวลาแทรกแซงทิศทางของเมือง', effects });
@@ -92,7 +95,7 @@ export function intervene(input, id) {
 }
 export function branch(input, { name, laws }, parentId) {
   createWorld({ name, seed: input.seed, laws }); // Same validation as a new world.
-  const world = structuredClone(input);
+  const world = ensurePeople(structuredClone(input));
   world.name = name.trim(); world.laws = [...laws]; world.parentId = parentId; world.branchYear = input.year;
   return world;
 }

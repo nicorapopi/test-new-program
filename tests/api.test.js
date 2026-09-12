@@ -20,6 +20,10 @@ test('API lifecycle, persistence, branching, curation and validation', async () 
     assert.equal((await request('/catalog')).data.laws.length, 8);
     const created = await request('/worlds', 'POST', { name: '<script>test</script>', seed: 'test', laws: ['memory'] });
     assert.equal(created.status, 201); const id = created.data.id;
+    const personId = created.data.people[0].id;
+    assert.equal((await request(`/worlds/${id}/people`, 'PATCH', { id: personId, followed: true })).data.people[0].followed, true);
+    assert.equal((await request(`/worlds/${id}/people`, 'PATCH', { id: personId, followed: 'yes' })).status, 400);
+    assert.equal((await request(`/worlds/${id}/people`, 'PATCH', { id: 'missing', followed: true })).status, 404);
     assert.equal((await request('/worlds')).data.length, 1);
     const advanced = await request(`/worlds/${id}/advance`, 'POST', { years: 10 }); assert.equal(advanced.data.year, 10);
     const artifact = advanced.data.artifacts[0];
@@ -30,6 +34,8 @@ test('API lifecycle, persistence, branching, curation and validation', async () 
     await request(`/worlds/${child.data.id}/advance`, 'POST', { years: 10 });
     assert.equal((await request(`/worlds/${id}`)).data.year, 10);
     await stop(); base = await start();
+    assert.equal((await request(`/worlds/${id}`)).data.people[0].followed, true);
+    assert.equal((await request(`/worlds/${child.data.id}`)).data.peopleOrigin, (await request(`/worlds/${id}`)).data.peopleOrigin);
     assert.equal((await request(`/worlds/${id}/export`)).data.artifacts[0].note, 'หลักฐานที่ต้องเก็บ');
     assert.equal((await request(`/worlds/${id}/advance`, 'POST', { years: 51 })).status, 400);
     assert.equal((await request(`/worlds/${id}/artifacts`, 'PATCH', { id: artifact.id, featured: 'yes' })).status, 400);

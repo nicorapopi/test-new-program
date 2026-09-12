@@ -25,10 +25,10 @@ export function makeServer({ database = resolve(root, 'data/museum.sqlite') } = 
         }
         if (req.method === 'GET' && url.pathname === '/api/catalog') return json(200, { laws: LAWS, metrics: METRICS, interventions: INTERVENTIONS });
         if (url.pathname === '/api/worlds') {
-          if (req.method === 'GET') return json(200, store.list().map(({ history, artifacts, snapshots, ...w }) => ({ ...w, artifactCount: artifacts.length })));
+          if (req.method === 'GET') return json(200, store.list().map(({ history, artifacts, snapshots, people, ...w }) => ({ ...w, artifactCount: artifacts.length, residentCount: people.filter(p => p.deathYear === null).length })));
           if (req.method === 'POST') return json(201, store.create(createWorld(body)));
         }
-        const match = url.pathname.match(/^\/api\/worlds\/([a-f0-9-]+)(?:\/(advance|intervene|branch|artifacts|export))?$/);
+        const match = url.pathname.match(/^\/api\/worlds\/([a-f0-9-]+)(?:\/(advance|intervene|branch|artifacts|people|export))?$/);
         if (!match) return json(404, { error: 'ไม่พบเส้นทาง' });
         const [, id, action] = match, world = store.get(id);
         if (!world) return json(404, { error: 'ไม่พบโลกนี้' });
@@ -37,6 +37,13 @@ export function makeServer({ database = resolve(root, 'data/museum.sqlite') } = 
         if (req.method === 'POST' && action === 'advance') return json(200, store.save(id, advance(world, body.years)));
         if (req.method === 'POST' && action === 'intervene') return json(200, store.save(id, intervene(world, body.id)));
         if (req.method === 'POST' && action === 'branch') return json(201, store.create(branch(world, body, id)));
+        if (req.method === 'PATCH' && action === 'people') {
+          const person = world.people.find(p => p.id === body.id);
+          if (!person) return json(404, { error: 'ไม่พบคนนี้ในทะเบียน' });
+          if (typeof body.followed !== 'boolean') throw new Error('สถานะติดตามไม่ถูกต้อง');
+          person.followed = body.followed;
+          return json(200, store.save(id, world));
+        }
         if (req.method === 'PATCH' && action === 'artifacts') {
           const item = world.artifacts.find(a => a.id === body.id);
           if (!item) return json(404, { error: 'ไม่พบวัตถุ' });
@@ -49,7 +56,7 @@ export function makeServer({ database = resolve(root, 'data/museum.sqlite') } = 
         return json(405, { error: 'ไม่รองรับคำสั่งนี้' });
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(405, { error: 'ไม่รองรับคำสั่งนี้' });
-      const files = { '/': 'index.html', '/app.js': 'app.js', '/style.css': 'style.css', '/favicon.svg': 'favicon.svg' };
+      const files = { '/': 'index.html', '/app.js': 'app.js', '/people-ui.js': 'people-ui.js', '/style.css': 'style.css', '/favicon.svg': 'favicon.svg' };
       const file = files[url.pathname];
       if (!file) return json(404, { error: 'ไม่พบไฟล์' });
       const content = await readFile(resolve(root, 'public', file));
