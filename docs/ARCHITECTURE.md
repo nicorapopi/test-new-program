@@ -49,8 +49,8 @@ JSON UTF-8; validation error 400, not found 404, method 405, body เกิน 2
 
 ## ข้อจำกัด
 
-- ไม่มี authentication, cloud sync หรือ import JSON
-- หลาย endpoint ส่งโลกเต็ม; จำกัด 2,000 ปีแต่ไม่จำกัดจำนวนโลก
+- รุ่น 1.2 มี authentication และ ownership สำหรับ private beta; ยังไม่มี cloud sync หรือ import JSON
+- หลาย endpoint ส่งโลกเต็ม; จำกัด 2,000 ปี, 20 โลกต่อบัญชี และ 200 โลกทั้งระบบ
 - 12 แม่แบบเหตุการณ์และปฏิสัมพันธ์พิเศษหนึ่งแบบ เรื่องเล่าซ้ำได้
 - รูปวัตถุเป็น SVG ตามกฎ ไม่ได้สร้างใหม่รายชิ้น
 - กราฟย่อประมาณ 250 จุด ข้อมูลเต็มอยู่ใน JSON

@@ -10,6 +10,7 @@ function toast(message) { const el = $('#toast'); el.textContent = message; el.h
 async function api(path, method = 'GET', body) {
   const response = await fetch(`/api${path}`, { method, ...(body !== undefined ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}) });
   const data = await response.json();
+  if (response.status === 401 && path !== '/login') showLogin();
   if (!response.ok) throw new Error(data.error || 'เชื่อมต่อไม่สำเร็จ');
   return data;
 }
@@ -130,6 +131,9 @@ function openArtifact(id) {
 }
 document.addEventListener('click', event => {
   const button = event.target.closest('button'); if (!button || state.busy) return;
+  if (button.closest('#login-form')) return;
+  if (button.id === 'logout') { perform(async () => { await api('/logout', 'POST', {}); showLogin(); }); return; }
+  if (!state.catalog) return;
   if (button.hasAttribute('data-close')) { button.closest('dialog').close(); return; }
   if (button.id === 'help-button') { $('#help-dialog').showModal(); return; }
   if (button.id === 'new-world' || button.id === 'new-world-small' || button.dataset.action === 'new') { openWorldForm(); return; }
@@ -199,8 +203,34 @@ document.addEventListener('submit', event => {
     } catch (error) { $('#artifact-error').textContent = error.message; }
   });
 });
-try {
+function showLogin() {
+  state.world = null; state.worlds = []; state.catalog = null;
+  state.compareWorld = null; state.compareId = null; state.search = ''; state.eventId = null;
+  clearTimeout(toastTimer); $('#toast').hidden = true;
+  $$('dialog[open]').forEach(d => d.close());
+  $('#artifact-dialog').innerHTML = ''; $('#person-dialog').innerHTML = '';
+  $('#world-form').reset(); $('#law-options').innerHTML = '';
+  document.body.classList.add('signed-out');
+  $('#account').innerHTML = ''; $('#world-list').innerHTML = '';
+  $('#content').innerHTML = `<section class="login-card"><span class="eyebrow">UNLIVED / PRIVATE BETA</span><h1>กลับเข้าสู่ความเป็นไปได้</h1><p class="muted">ใช้บัญชีที่ผู้ดูแลสร้างให้ แต่ละบัญชีมีพิพิธภัณฑ์ของตัวเอง</p><form id="login-form"><label class="field">ชื่อผู้ใช้<input name="username" required autocomplete="username" pattern="[a-z0-9_-]{3,32}" maxlength="32"></label><label class="field">รหัสผ่าน<input name="password" type="password" required maxlength="128" autocomplete="current-password"></label><p id="login-error" class="error" role="alert"></p><button class="primary full" type="submit">เข้าสู่พิพิธภัณฑ์ →</button></form><p class="muted">หากยังไม่มีบัญชีหรือลืมรหัสผ่าน ติดต่อผู้ดูแลพิพิธภัณฑ์</p></section>`;
+}
+document.addEventListener('submit', event => {
+  if (event.target.id !== 'login-form') return;
+  event.preventDefault();
+  perform(async () => {
+    const form = event.target;
+    try { await api('/login', 'POST', { username: form.elements.username.value, password: form.elements.password.value }); await boot(); }
+    catch (error) { if ($('#login-error')) $('#login-error').textContent = error.message; }
+  });
+});
+async function boot() {
+  const session = await api('/session');
+  if (!session.authenticated) { showLogin(); return; }
+  document.body.classList.remove('signed-out');
+  $('#account').innerHTML = session.authRequired ? `<p class="muted">${esc(session.username)}</p><button id="logout" class="text-button">ออกจากระบบ</button>` : '';
+  state.view = 'observatory'; state.search = ''; state.filter = 'all'; state.page = 0; state.eventId = null;
   state.catalog = await api('/catalog');
   let selected; try { selected = localStorage.getItem('unlived-selected'); } catch {}
   await refresh(selected);
-} catch (error) { $('#content').innerHTML = `<div class="empty"><h2>เปิดพิพิธภัณฑ์ไม่สำเร็จ</h2><p>${esc(error.message)}</p><p>ตรวจสอบว่าโปรแกรมยังทำงานอยู่ แล้วรีเฟรชหน้านี้</p></div>`; }
+}
+try { await boot(); } catch (error) { $('#content').innerHTML = `<div class="empty"><h2>เปิดพิพิธภัณฑ์ไม่สำเร็จ</h2><p>${esc(error.message)}</p><p>ตรวจสอบว่าโปรแกรมยังทำงานอยู่ แล้วรีเฟรชหน้านี้</p></div>`; }
